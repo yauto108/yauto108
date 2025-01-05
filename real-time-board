@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>リアルタイム掲示板</title>
+  </head>
+  <body>
+    <h1>リアルタイム掲示板</h1>
+
+    <div id="messages"></div>
+
+    <textarea id="messageInput" placeholder="メッセージを入力してください"></textarea>
+    <button id="sendMessageBtn">送信</button>
+
+    <script>
+      // WebSocketサーバーのURL（Cloudflare WorkerのURLを使います）
+      const socket = new WebSocket('wss://https://nameless-snowflake-b22b.kurokogetoro.workers.dev/');
+
+      // メッセージを受信した際に表示する処理
+      socket.addEventListener('message', (event) => {
+        const messageDiv = document.createElement('div');
+        messageDiv.textContent = event.data;
+        document.getElementById('messages').appendChild(messageDiv);
+      });
+
+      // 送信ボタンが押された時にメッセージを送信
+      document.getElementById('sendMessageBtn').addEventListener('click', () => {
+        const message = document.getElementById('messageInput').value;
+        if (message) {
+          socket.send(message);  // メッセージを送信
+          document.getElementById('messageInput').value = '';  // 入力欄をクリア
+        }
+      });
+    </script>
+  </body>
+</html>
