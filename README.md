@@ -32,8 +32,12 @@
             padding: 10px;
             margin-bottom: 20px;
         }
+        .upload-section select,
         .upload-section button {
-            padding: 10px 20px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .upload-section button {
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -71,6 +75,16 @@
             <h2>ファイルをアップロード</h2>
             <input type="file" id="fileInput" accept="*/*">
             <br>
+            <h3>変換後の形式を選択</h3>
+            <select id="outputFormat">
+                <option value="pdf">PDF</option>
+                <option value="docx">Word (.docx)</option>
+                <option value="txt">テキスト (.txt)</option>
+                <option value="jpg">JPEG (.jpg)</option>
+                <option value="png">PNG (.png)</option>
+                <!-- 他のフォーマットを追加できます -->
+            </select>
+            <br><br>
             <button onclick="convertFile()">変換を開始</button>
         </div>
 
@@ -83,20 +97,21 @@
     <script>
         function convertFile() {
             const fileInput = document.getElementById('fileInput');
+            const outputFormat = document.getElementById('outputFormat').value;
             const resultSection = document.getElementById('resultSection');
             const downloadLink = document.getElementById('downloadLink');
 
             if (fileInput.files.length > 0) {
-                // 仮のダウンロードリンクを作成
-                // 実際の変換処理はサーバーサイドで行う必要があります。
+                // ファイルを取得
                 const file = fileInput.files[0];
+
+                // 仮の変換処理（実際の処理はサーバーサイドで行う）
                 const fileName = file.name.split('.')[0] + "_converted"; // 仮の名前
-                const fileExtension = ".pdf"; // 仮の変換後の形式
-                const downloadUrl = "/path/to/converted/" + fileName + fileExtension;
+                const downloadUrl = "/path/to/converted/" + fileName + "." + outputFormat; // 仮のURL
 
                 // ダウンロードリンクを設定
                 downloadLink.href = downloadUrl;
-                downloadLink.textContent = "変換後のファイルをダウンロード";
+                downloadLink.textContent = `変換後の${outputFormat.toUpperCase()}ファイルをダウンロード`;
 
                 // 結果セクションを表示
                 resultSection.style.display = 'block';
