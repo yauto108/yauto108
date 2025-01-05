@@ -29,6 +29,8 @@
         const formData = new FormData();
         formData.append("file", file);
 
+        console.log('送信するデータ:', formData);  // 送信するデータをログに表示
+
         try {
           const response = await fetch("/convert", {
             method: "POST",
@@ -40,8 +42,10 @@
           }
 
           const result = await response.json();
+          console.log('変換結果:', result);  // 結果をログに表示
           document.getElementById("result").textContent = "変換結果: " + result.convertedContent;
         } catch (error) {
+          console.error('エラー:', error);
           document.getElementById("result").textContent = "エラー: " + error.message;
         }
       });
