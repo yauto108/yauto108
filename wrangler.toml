@@ -1,0 +1,10 @@
+name = "file-converter-worker"  # Workerの名前
+type = "javascript"
+
+[build]
+command = "npm install"  # 必要なパッケージがあればインストール
+
+[env.production]
+workers_dev = false
+route = "your-domain.com/*"  # 公開先のURL
+zone_id = "your-zone-id"  # ドメインのゾーンID
