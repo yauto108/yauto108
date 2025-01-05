@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF 回転とダウンロード</title>
+    <title>PDF 回転・PNG変換・ZIPダウンロード</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -17,13 +18,18 @@
             border: 1px solid #ccc;
             margin-bottom: 20px;
             position: relative;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100% !important;
+            height: auto !important;
         }
     </style>
 </head>
 <body>
-    <h1>PDF 回転とダウンロード</h1>
+    <h1>PDF 回転・PNG変換・ZIPダウンロード</h1>
     
-    <!-- PDF ファイルアップロードフォーム -->
+    <!-- PDF アップロードフォーム -->
     <input type="file" id="pdf-upload" accept="application/pdf">
     
     <!-- PDF表示エリア -->
@@ -32,8 +38,8 @@
     <!-- 回転ボタン -->
     <button onclick="rotatePdf()">回転</button>
     
-    <!-- ダウンロードボタン -->
-    <button onclick="downloadPdf()">回転したPDFをダウンロード</button>
+    <!-- PNG変換とZIPダウンロードボタン -->
+    <button onclick="convertPdfToPng()">PNGに変換してダウンロード</button>
 
     <script>
         let pdfDoc = null;  // PDFドキュメント
@@ -81,18 +87,41 @@
             renderPage(currentPage);  // 回転したページを再描画
         }
 
-        // 回転したPDFをダウンロードする
-        function downloadPdf() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+        // PDFをPNGに変換し、ZIPに圧縮してダウンロードする
+        function convertPdfToPng() {
+            const zip = new JSZip();
+            let promises = [];
+            
+            // すべてのページをPNGに変換してZIPに追加
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                promises.push(pdfDoc.getPage(i).then(function(page) {
+                    const scale = 1.5;
+                    const viewport = page.getViewport({ scale: scale, rotation: rotateAngle });
 
-            pdfDoc.getPage(currentPage).then(function(page) {
-                const scale = 1.5;
-                const viewport = page.getViewport({ scale: scale, rotation: rotateAngle });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
 
-                // jsPDFを使って回転したPDFを作成
-                doc.addImage(viewport.canvas, 'JPEG', 0, 0, viewport.width, viewport.height);
-                doc.save('rotated.pdf');  // 回転したPDFをダウンロード
+                    return page.render({ canvasContext: context, viewport: viewport }).promise.then(function() {
+                        // PNG画像に変換
+                        const imgData = canvas.toDataURL('image/png');
+
+                        // ZIPに画像を追加
+                        zip.file('page_' + i + '.png', imgData.split(',')[1], { base64: true });
+                    });
+                }));
+            }
+
+            // すべてのページが処理されたらZIPをダウンロード
+            Promise.all(promises).then(function() {
+                zip.generateAsync({ type: 'blob' }).then(function(content) {
+                    // ダウンロードリンクを作成してダウンロードをトリガー
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(content);
+                    link.download = 'pdf_pages.zip';
+                    link.click();
+                });
             });
         }
 
