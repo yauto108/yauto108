@@ -38,7 +38,9 @@
     <!-- 回転ボタン -->
     <button onclick="rotatePdf()">回転</button>
     
-    <!-- PNG変換とZIPダウンロードボタン -->
+    <!-- ダウンロード方法選択 -->
+    <br><br>
+    <button onclick="downloadAsPdf()">PDFとしてダウンロード</button>
     <button onclick="convertPdfToPng()">PNGに変換してダウンロード</button>
 
     <script>
@@ -64,7 +66,7 @@
         // PDFのページを描画する
         function renderPage(pageNum) {
             pdfDoc.getPage(pageNum).then(function(page) {
-                const scale = 1.5;
+                const scale = 1.5;  // ページスケールの調整
                 const viewport = page.getViewport({ scale: scale, rotation: rotateAngle });
 
                 const canvas = document.createElement('canvas');
@@ -85,6 +87,14 @@
         function rotatePdf() {
             rotateAngle = (rotateAngle + 90) % 360;  // 90度ずつ回転
             renderPage(currentPage);  // 回転したページを再描画
+        }
+
+        // PDFをそのままダウンロードする
+        function downloadAsPdf() {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(pdfDoc);  // PDF自体のダウンロード
+            link.download = 'download.pdf';
+            link.click();
         }
 
         // PDFをPNGに変換し、ZIPに圧縮してダウンロードする
