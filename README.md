@@ -3,147 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF 回転・PNG変換・ZIPダウンロード</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <title>オンラインファイル変換</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            padding: 20px;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
         }
-        #pdf-container {
-            width: 100%;
-            height: 500px;
-            border: 1px solid #ccc;
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            text-align: center;
+        }
+        .upload-section {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .upload-section input[type="file"] {
+            padding: 10px;
             margin-bottom: 20px;
-            position: relative;
-            overflow: hidden;
         }
-        canvas {
-            width: 100% !important;
-            height: auto !important;
+        .upload-section button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .upload-section button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            display: none;
+        }
+        .result a {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            border-radius: 5px;
+        }
+        .result a:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <h1>PDF 回転・PNG変換・ZIPダウンロード</h1>
-    
-    <!-- PDF アップロードフォーム -->
-    <input type="file" id="pdf-upload" accept="application/pdf">
-    
-    <!-- PDF表示エリア -->
-    <div id="pdf-container"></div>
-    
-    <!-- 回転ボタン -->
-    <button onclick="rotatePdf()">回転</button>
-    
-    <!-- ダウンロード方法選択 -->
-    <br><br>
-    <button onclick="downloadAsPdf()">PDFとしてダウンロード</button>
-    <button onclick="convertPdfToPng()">PNGに変換してダウンロード</button>
+
+    <header>
+        <h1>オンラインファイル変換サービス</h1>
+    </header>
+
+    <div class="container">
+        <div class="upload-section">
+            <h2>ファイルをアップロード</h2>
+            <input type="file" id="fileInput" accept="*/*">
+            <br>
+            <button onclick="convertFile()">変換を開始</button>
+        </div>
+
+        <div class="result" id="resultSection">
+            <h3>変換が完了しました！</h3>
+            <a id="downloadLink" href="#">ダウンロード</a>
+        </div>
+    </div>
 
     <script>
-        let pdfDoc = null;  // PDFドキュメント
-        let currentPage = 1; // 現在表示しているページ番号
-        let rotateAngle = 0;  // 回転角度
+        function convertFile() {
+            const fileInput = document.getElementById('fileInput');
+            const resultSection = document.getElementById('resultSection');
+            const downloadLink = document.getElementById('downloadLink');
 
-        // PDFファイルを読み込む
-        function loadPdf(file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const typedarray = new Uint8Array(event.target.result);
+            if (fileInput.files.length > 0) {
+                // 仮のダウンロードリンクを作成
+                // 実際の変換処理はサーバーサイドで行う必要があります。
+                const file = fileInput.files[0];
+                const fileName = file.name.split('.')[0] + "_converted"; // 仮の名前
+                const fileExtension = ".pdf"; // 仮の変換後の形式
+                const downloadUrl = "/path/to/converted/" + fileName + fileExtension;
 
-                // PDF.jsを使ってPDFを読み込む
-                pdfjsLib.getDocument(typedarray).promise.then(function(doc) {
-                    pdfDoc = doc;
-                    renderPage(currentPage);  // 最初のページを描画
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        }
+                // ダウンロードリンクを設定
+                downloadLink.href = downloadUrl;
+                downloadLink.textContent = "変換後のファイルをダウンロード";
 
-        // PDFのページを描画する
-        function renderPage(pageNum) {
-            pdfDoc.getPage(pageNum).then(function(page) {
-                const scale = 1.5;  // ページスケールの調整
-                const viewport = page.getViewport({ scale: scale, rotation: rotateAngle });
-
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
-
-                // 現在のPDF表示エリアをクリア
-                document.getElementById('pdf-container').innerHTML = '';  
-                document.getElementById('pdf-container').appendChild(canvas);
-
-                // PDFの内容をキャンバスに描画
-                page.render({ canvasContext: context, viewport: viewport });
-            });
-        }
-
-        // PDFを回転させる
-        function rotatePdf() {
-            rotateAngle = (rotateAngle + 90) % 360;  // 90度ずつ回転
-            renderPage(currentPage);  // 回転したページを再描画
-        }
-
-        // PDFをそのままダウンロードする
-        function downloadAsPdf() {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(pdfDoc);  // PDF自体のダウンロード
-            link.download = 'download.pdf';
-            link.click();
-        }
-
-        // PDFをPNGに変換し、ZIPに圧縮してダウンロードする
-        function convertPdfToPng() {
-            const zip = new JSZip();
-            let promises = [];
-            
-            // すべてのページをPNGに変換してZIPに追加
-            for (let i = 1; i <= pdfDoc.numPages; i++) {
-                promises.push(pdfDoc.getPage(i).then(function(page) {
-                    const scale = 1.5;
-                    const viewport = page.getViewport({ scale: scale, rotation: rotateAngle });
-
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-
-                    return page.render({ canvasContext: context, viewport: viewport }).promise.then(function() {
-                        // PNG画像に変換
-                        const imgData = canvas.toDataURL('image/png');
-
-                        // ZIPに画像を追加
-                        zip.file('page_' + i + '.png', imgData.split(',')[1], { base64: true });
-                    });
-                }));
-            }
-
-            // すべてのページが処理されたらZIPをダウンロード
-            Promise.all(promises).then(function() {
-                zip.generateAsync({ type: 'blob' }).then(function(content) {
-                    // ダウンロードリンクを作成してダウンロードをトリガー
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(content);
-                    link.download = 'pdf_pages.zip';
-                    link.click();
-                });
-            });
-        }
-
-        // ファイルアップロード時にPDFを読み込む
-        document.getElementById('pdf-upload').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file && file.type === 'application/pdf') {
-                loadPdf(file);
+                // 結果セクションを表示
+                resultSection.style.display = 'block';
             } else {
-                alert('PDFファイルを選択してください');
+                alert("ファイルを選択してください。");
             }
-        });
+        }
     </script>
+
 </body>
 </html>
