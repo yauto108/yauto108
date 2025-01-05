@@ -7,9 +7,44 @@
   </head>
   <body>
     <h1>ファイルをアップロードして変換</h1>
-    <form id="uploadForm" action="/convert" method="POST" enctype="multipart/form-data">
-      <input type="file" name="file" accept=".txt,.csv,.json" required />
-      <button type="submit">アップロード</button>
+    <form id="uploadForm">
+      <input type="file" id="fileInput" name="file" accept=".txt,.csv,.json" required />
+      <button type="submit">アップロードして変換</button>
     </form>
+
+    <div id="result"></div>
+
+    <script>
+      document.getElementById("uploadForm").addEventListener("submit", async (event) => {
+        event.preventDefault(); // デフォルトのフォーム送信を防ぐ
+
+        const fileInput = document.getElementById("fileInput");
+        const file = fileInput.files[0];
+
+        if (!file) {
+          alert("ファイルが選択されていません");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          const response = await fetch("/convert", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error("ファイルの変換に失敗しました");
+          }
+
+          const result = await response.json();
+          document.getElementById("result").textContent = "変換結果: " + result.convertedContent;
+        } catch (error) {
+          document.getElementById("result").textContent = "エラー: " + error.message;
+        }
+      });
+    </script>
   </body>
 </html>
