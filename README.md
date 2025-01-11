@@ -1,125 +1,196 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>オンラインファイル変換</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #4CAF50;
-            color: white;
-            padding: 15px 0;
-            text-align: center;
-        }
-        .container {
-            width: 80%;
-            margin: 20px auto;
-            text-align: center;
-        }
-        .upload-section {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        .upload-section input[type="file"] {
-            padding: 10px;
-            margin-bottom: 20px;
-        }
-        .upload-section select,
-        .upload-section button {
-            padding: 10px;
-            margin-top: 10px;
-        }
-        .upload-section button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .upload-section button:hover {
-            background-color: #45a049;
-        }
-        .result {
-            margin-top: 20px;
-            display: none;
-        }
-        .result a {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            text-decoration: none;
-            font-size: 18px;
-            border-radius: 5px;
-        }
-        .result a:hover {
-            background-color: #45a049;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>楽しい広場</title>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #333;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      width: 90%;
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    #whiteboard {
+      border: 2px solid #444;
+      background-color: white;
+      width: 100%;
+      height: 300px;
+      cursor: crosshair;
+    }
+    .color-buttons {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
+    }
+    .color-button {
+      width: 30px;
+      height: 30px;
+      margin: 0 5px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid #fff;
+    }
+    .red { background-color: red; }
+    .green { background-color: green; }
+    .blue { background-color: blue; }
+    .yellow { background-color: yellow; }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h1>楽しい広場</h1>
 
-    <header>
-        <h1>オンラインファイル変換サービス</h1>
-    </header>
-
-    <div class="container">
-        <div class="upload-section">
-            <h2>ファイルをアップロード</h2>
-            <input type="file" id="fileInput" accept="*/*">
-            <br>
-            <h3>変換後の形式を選択</h3>
-            <select id="outputFormat">
-                <option value="pdf">PDF</option>
-                <option value="docx">Word (.docx)</option>
-                <option value="txt">テキスト (.txt)</option>
-                <option value="jpg">JPEG (.jpg)</option>
-                <option value="png">PNG (.png)</option>
-                <!-- 他のフォーマットを追加できます -->
-            </select>
-            <br><br>
-            <button onclick="convertFile()">変換を開始</button>
-        </div>
-
-        <div class="result" id="resultSection">
-            <h3>変換が完了しました！</h3>
-            <a id="downloadLink" href="#">ダウンロード</a>
-        </div>
+    <!-- ホワイトボード -->
+    <canvas id="whiteboard"></canvas>
+    <div class="color-buttons">
+      <div class="color-button red" onclick="setColor('red')"></div>
+      <div class="color-button green" onclick="setColor('green')"></div>
+      <div class="color-button blue" onclick="setColor('blue')"></div>
+      <div class="color-button yellow" onclick="setColor('yellow')"></div>
     </div>
+    <button onclick="setEraser()">消しゴム</button>
+    <button onclick="clearCanvas()">全消去</button>
+  </div>
 
-    <script>
-        function convertFile() {
-            const fileInput = document.getElementById('fileInput');
-            const outputFormat = document.getElementById('outputFormat').value;
-            const resultSection = document.getElementById('resultSection');
-            const downloadLink = document.getElementById('downloadLink');
+  <script>
+    // Firebase 初期化
+    const firebaseConfig = {
+      apiKey: "AIzaSyDdLAHqEKekLAxKTiC2dTefIVZnabWdW5I",
+      authDomain: "yauto108-72184.firebaseapp.com",
+      databaseURL: "https://yauto108-72184-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "yauto108-72184",
+      storageBucket: "yauto108-72184.firebasestorage.app",
+      messagingSenderId: "783689974461",
+      appId: "1:783689974461:web:e35b650705cfa8ab08edd4",
+      measurementId: "G-SVFHC5KKHB"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-            if (fileInput.files.length > 0) {
-                // ファイルを取得
-                const file = fileInput.files[0];
+    // ホワイトボードの初期化
+    const canvas = document.getElementById('whiteboard');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let drawing = false;
+    let color = '#000000';
+    let eraser = false;
+    let lastPosition = null;
 
-                // 仮の変換処理（実際の処理はサーバーサイドで行う）
-                const fileName = file.name.split('.')[0] + "_converted"; // 仮の名前
-                const downloadUrl = "/path/to/converted/" + fileName + "." + outputFormat; // 仮のURL
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
 
-                // ダウンロードリンクを設定
-                downloadLink.href = downloadUrl;
-                downloadLink.textContent = `変換後の${outputFormat.toUpperCase()}ファイルをダウンロード`;
+    // リサイズ時にキャンバスを保持
+    window.addEventListener('resize', () => {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      ctx.putImageData(imgData, 0, 0);
+    });
 
-                // 結果セクションを表示
-                resultSection.style.display = 'block';
-            } else {
-                alert("ファイルを選択してください。");
-            }
-        }
-    </script>
+    // マウスイベント
+    canvas.addEventListener('mousedown', (event) => startDrawing(event));
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mousemove', (event) => draw(event));
 
+    // タッチイベント
+    canvas.addEventListener('touchstart', (event) => {
+      event.preventDefault();
+      startDrawing(event.touches[0]);
+    });
+    canvas.addEventListener('touchend', (event) => {
+      event.preventDefault();
+      stopDrawing();
+    });
+    canvas.addEventListener('touchmove', (event) => {
+      event.preventDefault();
+      draw(event.touches[0]);
+    });
+
+    function startDrawing(event) {
+      drawing = true;
+      lastPosition = getMousePosition(event);
+    }
+
+    function stopDrawing() {
+      drawing = false;
+      ctx.beginPath();
+      lastPosition = null;
+      saveDrawingData({ end: true });
+    }
+
+    function draw(event) {
+      if (!drawing) return;
+      const { x, y } = getMousePosition(event);
+
+      ctx.lineWidth = eraser ? 20 : 2;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = eraser ? 'white' : color;
+
+      if (lastPosition) {
+        ctx.beginPath();
+        ctx.moveTo(lastPosition.x, lastPosition.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.closePath();
+      }
+
+      lastPosition = { x, y };
+      saveDrawingData({ x, y, color: eraser ? 'white' : color });
+    }
+
+    function getMousePosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function setColor(newColor) {
+      color = newColor;
+      eraser = false;
+    }
+
+    function setEraser() {
+      eraser = true;
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      db.ref('drawing').remove(); // Firebaseからも削除
+    }
+
+    // 描画データの保存
+    function saveDrawingData(data) {
+      db.ref('drawing').push(data);
+    }
+
+    // 描画データのリアルタイム同期
+    db.ref('drawing').on('child_added', (snapshot) => {
+      const data = snapshot.val();
+
+      if (data.end) {
+        ctx.beginPath();
+        return;
+      }
+
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = data.color;
+      ctx.lineTo(data.x, data.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(data.x, data.y);
+    });
+  </script>
 </body>
 </html>
